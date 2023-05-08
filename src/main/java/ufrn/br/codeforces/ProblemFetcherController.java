@@ -1,6 +1,8 @@
 package ufrn.br.codeforces;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
@@ -18,8 +20,9 @@ import ufrn.br.codeforces.JSONClass.ReturnJSON;
 public class ProblemFetcherController {
 
     @GetMapping("/getProblem/{rating}")
-    public String index(@PathVariable(value="rating") int rating) throws IOException {
+    public String index(@PathVariable(value="rating") int rating) throws IOException, InterruptedException {
         System.out.println(myRepo.getRandom(rating));
+        //Thread.sleep(2000);
         return myRepo.getRandom(rating);
     }
 
@@ -43,14 +46,15 @@ public class ProblemFetcherController {
     @Autowired
     private ProblemInfoRepository myRepo;
 
-    @GetMapping("/salve")
-    public void fillDB(){
+    @EventListener(ApplicationReadyEvent.class)
+    public String fillDB(){
         List<Problem> allProblems = retrieve();
         System.out.println(allProblems);
 
         for (Problem p : allProblems){
             myRepo.save(new ProblemInfo(p));
         }
+        return "Salvo no banco: "+ allProblems.size()+"\n";
     }
 
 }
