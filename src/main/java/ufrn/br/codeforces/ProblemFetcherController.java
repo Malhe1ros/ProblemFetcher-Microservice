@@ -21,7 +21,7 @@ public class ProblemFetcherController {
 
     @GetMapping("/getProblem/{rating}")
     public String index(@PathVariable(value="rating") int rating) throws IOException, InterruptedException {
-        System.out.println(myRepo.getRandom(rating));
+        //System.out.println(myRepo.getRandom(rating));
         //Thread.sleep(2000);
         return myRepo.getRandom(rating);
     }
