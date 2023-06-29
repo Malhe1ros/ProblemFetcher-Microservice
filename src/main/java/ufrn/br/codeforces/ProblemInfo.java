@@ -1,21 +1,18 @@
 package ufrn.br.codeforces;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
+
 import lombok.Getter;
 import lombok.Setter;
-import jakarta.persistence.Id;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 import ufrn.br.codeforces.JSONClass.Problem;
 
 @Getter
 @Setter
-@Entity
+@Document(collection = "problemInfo")
 public class ProblemInfo {
     @Id
-    @GeneratedValue(strategy= GenerationType.AUTO)
-    private Integer id;
+    private String id;
     private Integer rating;
     private String url;
     ProblemInfo(Problem p){

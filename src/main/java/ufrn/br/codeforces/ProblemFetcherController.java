@@ -1,7 +1,10 @@
 package ufrn.br.codeforces;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import org.redisson.api.RedissonReactiveClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.event.EventListener;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -11,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.springframework.web.client.RestTemplate;
@@ -21,6 +25,7 @@ import reactor.core.publisher.Mono;
 import ufrn.br.codeforces.repository.ProblemInfoRepository;
 import ufrn.br.codeforces.JSONClass.Problem;
 import ufrn.br.codeforces.JSONClass.ReturnJSON;
+import ufrn.br.codeforces.JSONClass.ProblemList;
 
 @RestController
 public class ProblemFetcherController {
@@ -52,21 +57,37 @@ public class ProblemFetcherController {
 //        return pfs.reativo();
 //    }
 
+    @Autowired
+    RedissonReactiveClient redisson;
+    @Autowired
+    WebClient webClient;
+
+    @Cacheable(value = "myCache", key = "#rating")
     @GetMapping("/getProblem/{rating}")
-    public Mono<String> index(@PathVariable(value="rating") int rating) throws IOException, InterruptedException {
-        //System.out.println(myRepo.getRandom(rating));
-        //Thread.sleep(2000);
-        return Mono.just(myRepo.getRandom(rating));
+    public Mono<String> getRandomProblem(@PathVariable(value="rating") int rating) throws IOException, InterruptedException {
+       // System.out.println("PEGUEI DE FORA DO CACHE PARA VALOR "+rating);
+
+        return myRepo.getRandom(rating)
+                .map(problemInfo -> problemInfo.getUrl())
+                .switchIfEmpty(Mono.error(new RuntimeException("No documents found with the given rating.")));
+
     }
 
-    public List<Problem> retrieve(){
-        RestTemplate restTemplate = new RestTemplate();
-        String requestURL = "http://localhost:8083/getAllProblems";
 
-        String json = restTemplate.getForObject(requestURL, String.class);
+
+
+    public List<Problem> retrieve(){
+
+
+        String requestURL = "http://External-Communication-Handler/getAllProblems";
+
+        String json = restTemplate.getForObject(requestURL,String.class);
+
 
         ObjectMapper objectMapper = new ObjectMapper();
-        //return json;
+
+
+
         try {
             ReturnJSON problema = objectMapper.readValue(json, ReturnJSON.class);
             return problema.getResult().getProblems();
@@ -79,15 +100,23 @@ public class ProblemFetcherController {
     @Autowired
     private ProblemInfoRepository myRepo;
 
+
     @EventListener(ApplicationReadyEvent.class)
     public String fillDB(){
+        System.out.println("ENTREI");
+        //return retrieve();
+           myRepo.deleteAll().subscribe();
+//        Flux<Problem> allProblems = retrieve();
+//        allProblems.map(problem -> myRepo.save(new ProblemInfo(problem)).subscribe()).subscribe();
+
         List<Problem> allProblems = retrieve();
         System.out.println(allProblems);
-
         for (Problem p : allProblems){
-            myRepo.save(new ProblemInfo(p));
+            myRepo.save(new ProblemInfo(p)).subscribe();
         }
+        System.out.println("Finalizei");
         return "Salvo no banco: "+ allProblems.size()+"\n";
     }
-
+    @Autowired
+    RestTemplate restTemplate;
 }

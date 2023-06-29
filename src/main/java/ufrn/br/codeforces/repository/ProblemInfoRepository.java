@@ -1,16 +1,28 @@
 package ufrn.br.codeforces.repository;
 
 
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
+
+
+
+
+
+import org.springframework.data.mongodb.repository.Aggregation;
+import org.springframework.data.mongodb.core.aggregation.MatchOperation;
+import org.springframework.data.mongodb.core.aggregation.SampleOperation;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.repository.ReactiveMongoRepository;
 import org.springframework.stereotype.Repository;
+import reactor.core.publisher.Mono;
 import ufrn.br.codeforces.ProblemInfo;
 
 import java.util.List;
 
 @Repository
-public interface ProblemInfoRepository extends JpaRepository<ProblemInfo, Integer> {
-    @Query(value = "SELECT url FROM problem_info WHERE rating = :#{#x} ORDER BY random() LIMIT 1", nativeQuery = true)
-    String getRandom(@Param("x")int x);
+public interface ProblemInfoRepository extends ReactiveMongoRepository<ProblemInfo, Integer> {
+
+    @Aggregation(pipeline = {
+            "{$match: { rating: ?0 }}",
+            "{$sample: { size: 1 }}"
+    })
+    Mono<ProblemInfo> getRandom(int rating);
 }
